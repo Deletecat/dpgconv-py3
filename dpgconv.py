@@ -178,13 +178,13 @@ def conv_vid(file):
 		if options.fps < 24:
 			print("mencoder won't work with double pass and fps < 24, forcing fps = 24")
 			options.fps = 24
-		v_cmd = f' "{file}" -v -ofps {options.fps} -sws 9 -vf {v_pf} scale={options.width}:{options.height}:::3,harddup -nosound -ovc lavc -lavcopts vcodec=mpeg1video:vstrict=-2:mbd=2:trell:mv0:vmax_b_frames=2:cmp=6:subcmp=6:precmp=6:dia=4:predia=4:bidir_refine=4:mv0_threshold=0:last_pred=3:vbitrate={options.vbps}'
+		v_cmd = f'"{file}" -v -ofps {options.fps} -sws 9 -vf {v_pf}scale={options.width}:{options.height}:::3,harddup -nosound -ovc lavc -lavcopts vcodec=mpeg1video:vstrict=-2:mbd=2:trell:o=mpv_flags=+mv0:vmax_b_frames=2:cmp=6:subcmp=6:precmp=6:dia=4:predia=4:bidir_refine=4:mv0_threshold=0:last_pred=3:vbitrate={options.vbps}'
 	elif options.hq:
-		v_cmd = f' "{file}" -v -ofps {options.fps} -sws 9 -vf {v_pf} scale={options.width}:{options.height}:::3,harddup -nosound -ovc lavc -lavcopts vcodec=mpeg1video:vstrict=-2:mbd=2:trell:mv0:cmp=6:subcmp=6:precmp=6:dia=3:predia=3:last_pred=3:vbitrate={options.vbps} -o {MPGTMP} -of rawvideo'
+		v_cmd = f'"{file}" -v -ofps {options.fps} -sws 9 -vf {v_pf}scale={options.width}:{options.height}:::3,harddup -nosound -ovc lavc -lavcopts vcodec=mpeg1video:vstrict=-2:mbd=2:trell:o=mpv_flags=+mv0:cmp=6:subcmp=6:precmp=6:dia=3:predia=3:last_pred=3:vbitrate={options.vbps} -o {MPGTMP} -of rawvideo'
 	elif options.lq:
-		v_cmd = f' "{file}" -v -ofps {options.fps} -vf {v_pf} scale={options.width}:{options.height},harddup -nosound -ovc lavc -lavcopts vcodec=mpeg1video:vstrict=-2:vbitrate={options.vbps} -o {MPGTMP} -of rawvideo'
+		v_cmd = f'"{file}" -v -ofps {options.fps} -vf {v_pf}scale={options.width}:{options.height},harddup -nosound -ovc lavc -lavcopts vcodec=mpeg1video:vstrict=-2:vbitrate={options.vbps} -o {MPGTMP} -of rawvideo'
 	else :
-		v_cmd = f' "{file}" -v -ofps {options.fps} -sws 9 -vf {v_pf} scale={options.width}:{options.height}:::3,harddup -nosound -ovc lavc -lavcopts vcodec=mpeg1video:vstrict=-2:mbd=2:trell:mv0:cmp=2:subcmp=2:precmp=2:vbitrate={options.vbps} -o {MPGTMP} -of rawvideo'
+		v_cmd = f'"{file}" -v -ofps {options.fps} -sws 9 -vf {v_pf}scale={options.width}:{options.height}:::3,harddup -nosound -ovc lavc -lavcopts vcodec=mpeg1video:vstrict=-2:mbd=2:trell:o=mpv_flags=+mv0:cmp=2:subcmp=2:precmp=2:vbitrate={options.vbps} -o {MPGTMP} -of rawvideo'
 	
 	if options.nosub:
 		if options.sub is not None:
@@ -212,14 +212,14 @@ def conv_vid(file):
 	v_cmd = MENCODER + " " + v_cmd
 	if options.tp:
 		v_cmd_two = v_cmd
-		v_cmd = f'{v_cmd} :vpass=1:turbo:vb_strategy=2:vrc_maxrate=500:vrc_minrate=0:vrc_buf_size=327:intra_matrix=8,9,12,22,26,27,29,34,9,10,14,26,27,29,34,37,12,14,18,27,29,34,37,38,22,26,27,31,36,37,38,40,26,27,29,36,39,38,40,48,27,29,34,37,38,40,48,58,29,34,37,38,40,48,58,69,34,37,38,40,48,58,69,79:inter_matrix=16,18,20,22,24,26,28,30,18,20,22,24,26,28,30,32,20,22,24,26,28,30,32,34,22,24,26,30,32,32,34,36,24,26,28,32,34,34,36,38,26,28,30,32,34,36,38,40,28,30,32,34,36,38,42,42,30,32,34,36,38,40,42,44 -o {MPGTMP} -of rawvideo'
-		v_cmd_two = f'{v_cmd_two} :vpass=2:vrc_maxrate=500:vrc_minrate=0:vrc_buf_size=327:keyint=60:intra_matrix=8,9,12,22,26,27,29,34,9,10,14,26,27,29,34,37,12,14,18,27,29,34,37,38,22,26,27,31,36,37,38,40,26,27,29,36,39,38,40,48,27,29,34,37,38,40,48,58,29,34,37,38,40,48,58,69,34,37,38,40,48,58,69,79:inter_matrix=16,18,20,22,24,26,28,30,18,20,22,24,26,28,30,32,20,22,24,26,28,30,32,34,22,24,26,30,32,32,34,36,24,26,28,32,34,34,36,38,26,28,30,32,34,36,38,40,28,30,32,34,36,38,42,42,30,32,34,36,38,40,42,44 -o {MPGTMP} -of rawvideo'
+		v_cmd = f'{v_cmd}:vpass=1:turbo:vb_strategy=2:vrc_maxrate=500:vrc_minrate=0:vrc_buf_size=327:intra_matrix=8,9,12,22,26,27,29,34,9,10,14,26,27,29,34,37,12,14,18,27,29,34,37,38,22,26,27,31,36,37,38,40,26,27,29,36,39,38,40,48,27,29,34,37,38,40,48,58,29,34,37,38,40,48,58,69,34,37,38,40,48,58,69,79:inter_matrix=16,18,20,22,24,26,28,30,18,20,22,24,26,28,30,32,20,22,24,26,28,30,32,34,22,24,26,30,32,32,34,36,24,26,28,32,34,34,36,38,26,28,30,32,34,36,38,40,28,30,32,34,36,38,42,42,30,32,34,36,38,40,42,44 -o {MPGTMP} -of rawvideo'
+		v_cmd_two = f'{v_cmd_two}:vpass=2:vrc_maxrate=500:vrc_minrate=0:vrc_buf_size=327:keyint=60:intra_matrix=8,9,12,22,26,27,29,34,9,10,14,26,27,29,34,37,12,14,18,27,29,34,37,38,22,26,27,31,36,37,38,40,26,27,29,36,39,38,40,48,27,29,34,37,38,40,48,58,29,34,37,38,40,48,58,69,34,37,38,40,48,58,69,79:inter_matrix=16,18,20,22,24,26,28,30,18,20,22,24,26,28,30,32,20,22,24,26,28,30,32,34,22,24,26,30,32,32,34,36,24,26,28,32,34,34,36,38,26,28,30,32,34,36,38,40,28,30,32,34,36,38,42,42,30,32,34,36,38,40,42,44 -o {MPGTMP} -of rawvideo'
 		v_cmd_two = v_cmd_two + " " + options.mv
 		v_cmd = v_cmd + " " + options.mv
 	else:
 		v_cmd = v_cmd + " " + options.mv
-	#print v_cmd
-	#print v_cmd_two
+	#print (v_cmd)
+	#print (v_cmd_two)
 	proc = subprocess.Popen(v_cmd,shell=True,stdout=subprocess.PIPE,universal_newlines=True,stderr=open('/dev/null', 'w'))
 	
 	p = re.compile (r"f (\(.*%\))")
