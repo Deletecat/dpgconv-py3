@@ -11,13 +11,6 @@ dpgconv.py file1 file2 file3 ... fileN
 command line options:
 	--dpg
 		0,1,2,3,4 sets DPG version.. default is DPG4
-	
-	--pf
-		sets pixel format, default is 3
-		0        RGB15
-		1        RGB18
-		2        RGB21
-		3        RGB24 
 
 	-2,--tp 
 		extra high quality 2-pass encoded video
@@ -144,20 +137,7 @@ def cleanup_callback(a,b):
 		os.rmdir(SHOTTMP)
 
 def conv_vid(file):
-	if ((options.dpg == 0) | (options.dpg == 4)):
-		v_pf = "format=rgb24,"
-		options.pf = 3
-	elif options.pf == 3:
-		v_pf = "format=rgb24,"
-	elif options.pf == 2:
-		v_pf = "format=rgb21,"
-	elif options.pf == 1:
-		v_pf = "format=rgb18,"
-	elif options.pf == 0:
-		v_pf = "format=fmt=rgb15,"
-	else:
-		v_pf = "format=rgb24,"
-		options.pf = 3
+	options.pf = 3
 
 	if options.aspect:
 		aspect = subprocess.getoutput(f'{MPLAYER} -frames 1 -vo null -ao null -identify "{file}" | grep -E "^ID_VIDEO_ASPECT" | tail -1')
@@ -178,13 +158,13 @@ def conv_vid(file):
 		if options.fps < 24:
 			print("mencoder won't work with double pass and fps < 24, forcing fps = 24")
 			options.fps = 24
-		v_cmd = f'"{file}" -v -ofps {options.fps} -sws 9 -vf {v_pf}scale={options.width}:{options.height}:::3,harddup -nosound -ovc lavc -lavcopts vcodec=mpeg1video:vstrict=-2:mbd=2:trell:o=mpv_flags=+mv0:vmax_b_frames=2:cmp=6:subcmp=6:precmp=6:dia=4:predia=4:bidir_refine=4:mv0_threshold=0:last_pred=3:vbitrate={options.vbps}'
+		v_cmd = f'"{file}" -v -ofps {options.fps} -sws 9 -vf scale={options.width}:{options.height}:::3,harddup -nosound -ovc lavc -lavcopts vcodec=mpeg1video:vstrict=-2:mbd=2:trell:o=mpv_flags=+mv0:vmax_b_frames=2:cmp=6:subcmp=6:precmp=6:dia=4:predia=4:bidir_refine=4:mv0_threshold=0:last_pred=3:vbitrate={options.vbps}'
 	elif options.hq:
-		v_cmd = f'"{file}" -v -ofps {options.fps} -sws 9 -vf {v_pf}scale={options.width}:{options.height}:::3,harddup -nosound -ovc lavc -lavcopts vcodec=mpeg1video:vstrict=-2:mbd=2:trell:o=mpv_flags=+mv0:cmp=6:subcmp=6:precmp=6:dia=3:predia=3:last_pred=3:vbitrate={options.vbps} -o {MPGTMP} -of rawvideo'
+		v_cmd = f'"{file}" -v -ofps {options.fps} -sws 9 -vf scale={options.width}:{options.height}:::3,harddup -nosound -ovc lavc -lavcopts vcodec=mpeg1video:vstrict=-2:mbd=2:trell:o=mpv_flags=+mv0:cmp=6:subcmp=6:precmp=6:dia=3:predia=3:last_pred=3:vbitrate={options.vbps} -o {MPGTMP} -of rawvideo'
 	elif options.lq:
-		v_cmd = f'"{file}" -v -ofps {options.fps} -vf {v_pf}scale={options.width}:{options.height},harddup -nosound -ovc lavc -lavcopts vcodec=mpeg1video:vstrict=-2:vbitrate={options.vbps} -o {MPGTMP} -of rawvideo'
+		v_cmd = f'"{file}" -v -ofps {options.fps} -vf scale={options.width}:{options.height},harddup -nosound -ovc lavc -lavcopts vcodec=mpeg1video:vstrict=-2:vbitrate={options.vbps} -o {MPGTMP} -of rawvideo'
 	else :
-		v_cmd = f'"{file}" -v -ofps {options.fps} -sws 9 -vf {v_pf}scale={options.width}:{options.height}:::3,harddup -nosound -ovc lavc -lavcopts vcodec=mpeg1video:vstrict=-2:mbd=2:trell:o=mpv_flags=+mv0:cmp=2:subcmp=2:precmp=2:vbitrate={options.vbps} -o {MPGTMP} -of rawvideo'
+		v_cmd = f'"{file}" -v -ofps {options.fps} -sws 9 -vf scale={options.width}:{options.height}:::3,harddup -nosound -ovc lavc -lavcopts vcodec=mpeg1video:vstrict=-2:mbd=2:trell:o=mpv_flags=+mv0:cmp=2:subcmp=2:precmp=2:vbitrate={options.vbps} -o {MPGTMP} -of rawvideo'
 	
 	if options.nosub:
 		if options.sub is not None:
@@ -471,7 +451,6 @@ parser.add_option("--ma", dest="ma", default="")
 parser.add_option("-t", "--thumb", dest="thumb", default="")
 parser.add_option("--nosub", action="store_true", dest="nosub", default=False)
 parser.add_option("--dpg", type="int" , dest="dpg", default=4)
-parser.add_option("--pf", type="int" , dest="pf", default=3)
 parser.add_option("--sid", type="int" , dest="sid")
 parser.add_option("--aid", type="int" , dest="aid")
 parser.add_option("-2","--tp",action="store_true", dest="tp", default=False)
