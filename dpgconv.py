@@ -266,7 +266,7 @@ def conv_aud(file):
 		a_cmd = a_cmd + " -aid " + str(options.aid)
 
 	a_cmd = a_cmd + " " + options.ma
-	#print a_cmd
+	#print(a_cmd)
 
 	proc = subprocess.Popen(a_cmd,shell=True,stdout=subprocess.PIPE,universal_newlines=True,stderr=subprocess.STDOUT)
 	
@@ -292,7 +292,7 @@ def write_header(frames):
 	videostart = audiostart + audiosize
 	videoend = videostart + videosize
 	f=open(HEADERTMP, 'wb')
-	DPG = f'DPG{options.dpg}'
+	DPG = b'DPG4'
 	headerValues = [ DPG, int(frames), options.fps, 0, options.hz , 0 ,int(audiostart), int(audiosize), int(videostart), int(videosize) ]
 	
 	f.write (struct.pack( "4s" , headerValues[0]))
@@ -313,7 +313,7 @@ def write_header(frames):
 	if options.dpg != 1:
 		f.write (struct.pack ( "<l" , options.pf ))
 	if options.dpg == 4:
-		f.write (struct.pack ( "4s" , "THM0"))
+		f.write (struct.pack ( "4s" , b"THM0"))
 	f.close()
 
 def mpeg_stat():
@@ -376,12 +376,10 @@ def conv_thumb(file, frames):
 	Takes a PNG screenshot if no file given.
 	"""
 	shot_file = None
-	if not (os.path.lexists ( file )):
+	if not os.path.lexists(file):
 		print("Preview file will be generated from video file.")
 		shot_file = SHOTTMP +"/00000001.png"
-		s_cmd = '%s %s -nosound -vo png:outdir=%s -frames 1 -ss %d' % (
-			MPLAYER, MPGTMP, SHOTTMP, 
-			int((int(frames)/options.fps)/10))
+		s_cmd = f'{MPLAYER} {MPGTMP} -nosound -vo png:outdir={SHOTTMP} -frames 1 -ss {int((int(frames)/options.fps)/10)}'
 		output = subprocess.getoutput(s_cmd)
 		#check for "Exiting... (End of file)" ?
 		file = shot_file
@@ -396,12 +394,12 @@ def conv_thumb(file, frames):
 				0.0, height/dest_h, 0.0 ]
 	else:
 		matrix=[ width/dest_w, 0.0, 0.0,
-				0.0, width/dest_w, -(dest_h -(height*dest_w/width))//2 ]	
+				0.0, width/dest_w, -(dest_h -(height*dest_w/width))//2 ]
 	thumbim = im.transform(size, Image.AFFINE, matrix , Image.BICUBIC).getdata()
 
-	data = list()
+	data = []
 	for i in range(dest_h):
-		row = list()
+		row = []
 		for j in range(dest_w):
 			red, green, blue = thumbim[i*dest_w+j][0], thumbim[i*dest_w+j][1], thumbim[i*dest_w+j][2]
 			pixel = (( 1 << 15)
@@ -411,7 +409,7 @@ def conv_thumb(file, frames):
 			row.append(pixel)
 		data.append(row)
 	row_fmt=('H'*dest_w)
-	thumb_data = ''.join(struct.pack(row_fmt, *row) for row in data)
+	thumb_data = b''.join(struct.pack(row_fmt, *row) for row in data)
 
 	thumb_file=open(THUMBTMP, 'wb')
 	thumb_file.write(thumb_data)
@@ -446,9 +444,9 @@ def init_names():
 	SHOTTMP=tempfile.mkdtemp()
 
 def concat(out,*files):
-	outfile = open(out,'w')
+	outfile = open(out,'wb')
 	for name in files:
-		outfile.write( open(name).read() )
+		outfile.write( open(name,"rb").read() )
 	outfile.close()
 
 
