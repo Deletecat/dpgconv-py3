@@ -292,7 +292,7 @@ def write_header(frames):
 	videostart = audiostart + audiosize
 	videoend = videostart + videosize
 	f=open(HEADERTMP, 'wb')
-	DPG = b'DPG4'
+	DPG = f'DPG{options.dpg}'.encode('utf-8')
 	headerValues = [ DPG, int(frames), options.fps, 0, options.hz , 0 ,int(audiostart), int(audiosize), int(videostart), int(videosize) ]
 	
 	f.write (struct.pack( "4s" , headerValues[0]))
