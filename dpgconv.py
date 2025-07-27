@@ -223,7 +223,7 @@ def conv_aud(file):
 	vol=''
 	if options.volnorm:
 		vol="-af volnorm"
-	a_cmd = f'{MENCODER} "{file}" -v -of rawaudio -oac lavc -ovc copy -lavcopts acodec=mp2:abitrate={options.abps} -o {MP2TMP} {vol}'
+	a_cmd = f'{MENCODER} "{file}" -v -of rawaudio -oac twolame -ovc copy -twolameopts br={options.abps}:mode=stereo -o {MP2TMP} {vol}'
 	identify = subprocess.getoutput(MPLAYER + " -frames 0 -vo null -ao null -identify \"" + file + "\" | grep -E \"^ID|VIDEO|AUDIO\"")
 	p = re.compile("([0-9]*)( ch)")
 	m = p.search(identify)
