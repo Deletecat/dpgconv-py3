@@ -222,25 +222,30 @@ def conv_vid(file):
 def conv_aud(file):
 	vol=''
 	if options.volnorm:
-		vol="-af volnorm"
-	a_cmd = f'{MENCODER} "{file}" -v -of rawaudio -oac twolame -ovc copy -twolameopts br={options.abps}:mode=stereo -o {MP2TMP} {vol}'
+		vol="volnorm,"
 	identify = subprocess.getoutput(MPLAYER + " -frames 0 -vo null -ao null -identify \"" + file + "\" | grep -E \"^ID|VIDEO|AUDIO\"")
 	p = re.compile("([0-9]*)( ch)")
 	m = p.search(identify)
 	if m:
+		a_cmd = f'{MENCODER} "{file}" -v -of rawaudio -oac twolame -ovc copy -twolameopts br={options.abps}'
 		c = int(m.group(1))
-		if options.channels is None:
-			if c > 2:
-				a_cmd = f'{a_cmd} -af channels=2,resample={options.hz}:1:2'
+		if options.channels is None and options.dpg != 0:
+			if c >= 2:
+				a_cmd = f'{a_cmd}:mode=stereo -o {MP2TMP} -af {vol}channels=2,resample={options.hz}:1:2'
 			else:
-				a_cmd = f'{a_cmd} -af resample={options.hz}:1:2'
-		elif options.channels >= 2:
-			a_cmd = f'{a_cmd} -af channels=2,resample={options.hz}:1:2'
+				a_cmd = f'{a_cmd}:mode=mono -o {MP2TMP} -af {vol}channels=1,resample={options.hz}:1:2'
+		elif options.channels >= 2 and options.dpg != 0:
+			a_cmd = f'{a_cmd}:mode=stereo -o {MP2TMP} -af {vol}channels=2,resample={options.hz}:1:2'
 		else:
-			a_cmd = f'{a_cmd} -af channels=1,resample={options.hz}:1:2'
+			a_cmd = f'{a_cmd}:mode=mono -o {MP2TMP} -af {vol}channels=1,resample={options.hz}:1:2'
 	else:
-		print("Error running mplayer:")
-		print(identify)
+		# Moonshell requires that an audio stream exists!
+		# mencoder options for creating a silent audio stream will be needing looked into
+		print("Video does not have audio or an error has occurred.")
+		print("The video cannot be played in this case as an audio stream isn't created.")
+		cleanup_callback(0,0)
+		print("Exiting...")
+		exit(1)
 
 	if options.aid is not None:
 		a_cmd = a_cmd + " -aid " + str(options.aid)
