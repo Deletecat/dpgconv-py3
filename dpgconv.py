@@ -227,6 +227,7 @@ def conv_aud(file):
 	p = re.compile("([0-9]*)( ch)")
 	m = p.search(identify)
 	if m:
+		silent = False
 		a_cmd = f'{MENCODER} "{file}" -v -of rawaudio -oac twolame -ovc copy -twolameopts br={options.abps}'
 		c = int(m.group(1))
 		if options.channels is None and options.dpg != 0:
@@ -239,13 +240,20 @@ def conv_aud(file):
 		else:
 			a_cmd = f'{a_cmd}:mode=mono -o {MP2TMP} -af {vol}channels=1,resample={options.hz}:1:2'
 	else:
-		# Moonshell requires that an audio stream exists!
-		# mencoder options for creating a silent audio stream will be needing looked into
-		print("Video does not have audio or an error has occurred.")
-		print("The video cannot be played in this case as an audio stream isn't created.")
-		cleanup_callback(0,0)
-		print("Exiting...")
-		exit(1)
+		# This condition will only be true if the video does not have an audio stream, or if mplayer errors out for some other reason.
+		# Having no audio stream will crash Moonshell as it's expecting something that doesn't exist
+		vid_length_regex = re.compile("ID_LENGTH=([0-9]*.[0-9]*)")	# ID_LENGTH corresponds to the video length in seconds
+		vid_length = vid_length_regex.search(identify)
+		if vid_length:
+			seconds = float(vid_length.group(1))
+			# use sox with the mp3 libsox format to generate a silent mp2 file
+			a_cmd = f"sox -n -r 48000 -c 1 {MP2TMP} trim 0.0 {seconds}"
+			silent = True
+		else:
+			# this shouldn't occur if the user is passing an actual video file to the script
+			print("Error! See Mplayer output below:\n{}".format(identify))
+			cleanup_callback(0,0)
+			exit(1)
 
 	if options.aid is not None:
 		a_cmd = a_cmd + " -aid " + str(options.aid)
@@ -255,11 +263,12 @@ def conv_aud(file):
 
 	proc = subprocess.Popen(a_cmd,shell=True,stdout=subprocess.PIPE,universal_newlines=True,stderr=subprocess.STDOUT)
 	
-	p = re.compile (r"f (\(.*%\))")
-	for line in proc.stdout:
-		m = p.search( line )
-		if m:
-			print("Transcoding audio: " + m.group(1) + "\r", end=" ")
+	if not silent:
+		p = re.compile (r"f (\(.*%\))")
+		for line in proc.stdout:
+			m = p.search( line )
+			if m:
+				print("Transcoding audio: " + m.group(1) + "\r", end=" ")
 	print("Transcoding audio:   done")
 
 def write_header(frames):
@@ -414,7 +423,7 @@ def conv_thumb(file, frames):
 
 def init_names():
 	global MPGTMP,MP2TMP,HEADERTMP,GOPTMP,STATTMP,THUMBTMP,SHOTTMP
-	a,MP2TMP=tempfile.mkstemp()
+	a,MP2TMP=tempfile.mkstemp(suffix=".mp2")
 	os.close(a)
 	a,MPGTMP=tempfile.mkstemp()
 	os.close(a)
@@ -469,6 +478,9 @@ if options.dpg > 4:
 if options.dpg < 0:
 	options.dpg = 2
 
+# Temporarily removing requirements testing
+# this causes issues in Debian, unsure why.
+"""
 test = subprocess.getoutput ( MPEG_STAT + " --" )
 m = re.compile ("mpeg_stat --(.*)").search(test)
 if m:
@@ -492,7 +504,7 @@ if m:
 else:
 	print("Error:")
 	print(test)
-	exit (0)
+	exit (0)"""
 print("It seems we found all programs :)...continuing")
 print("______________________________________________")
 init_names()
