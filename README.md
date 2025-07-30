@@ -19,7 +19,7 @@ Requirements:
 If you are on Debian, you can install all of the requirements with these commands:
 
 ```
-apt update && apt install mplayer mencoder sox twolame python3-pil
+apt update && apt install mplayer mencoder sox libsox-fmt-mp3 python3-pil
 ```
 
 The software is released under the terms of 
