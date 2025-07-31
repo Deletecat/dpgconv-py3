@@ -96,6 +96,7 @@ import tempfile
 from optparse import OptionParser
 import signal
 import re
+import shutil
 import stat
 import struct
 import subprocess
@@ -407,8 +408,6 @@ def concat(out,*files):
 		outfile.write( open(name.name,"rb").read() )
 	outfile.close()
 
-
-
 parser = OptionParser()
 parser.add_option("-f","--fps", type="int", dest="fps" , default=15)
 parser.add_option("-q","--hq", action="store_true", dest="hq", default=False)
@@ -439,35 +438,26 @@ if options.dpg > 4:
 if options.dpg < 0:
 	options.dpg = 2
 
-# Temporarily removing requirements testing
-# this causes issues in Debian, unsure why.
-"""
-test = subprocess.getoutput ( MPEG_STAT + " --" )
-m = re.compile ("mpeg_stat --(.*)").search(test)
-if m:
-	print(m.group(0))
-else:
-	print("Error:")
-	print(test)
-	exit (0)
-test = subprocess.getoutput ( MPLAYER )
-m = re.compile ("^MPlayer.*").search(test)
-if m:
-	print(m.group(0))
-else:
-	print("Error:")
-	print(test)
-	exit (0)
-test = subprocess.getoutput ( MENCODER)
-m = re.compile ("^MEncoder.*").search(test)
-if m:
-	print(m.group(0))
-else:
-	print("Error:")
-	print(test)
-	exit (0)"""
-print("It seems we found all programs :)...continuing")
-print("______________________________________________")
+# check requirements
+# we don't need to check for pillow as that would trigger earlier in the script
+requirements = ["mplayer","mencoder","mpeg_stat","sox"]
+missing_requirement = False
+
+for i in range(len(requirements)):
+	if shutil.which(requirements[i]) is None:
+		print(f"Error, {requirements[i]} is missing!")
+		missing_requirement = True
+
+# check if sox has mp3/mp2 format extension
+sox_test = subprocess.run('sox -h | grep "mp2"', shell=True, capture_output=True)
+if(sox_test.returncode == 1):
+	print("Error, libsox-fmt-mp3 is missing!")
+	missing_requirement = True
+
+# exit the script if a requirement isn't met
+if missing_requirement:
+	exit(1)
+
 init_names()
 for file in args:
 	conv_file(file)
