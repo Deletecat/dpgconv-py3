@@ -100,41 +100,14 @@ import stat
 import struct
 import subprocess
 
-MP2TMP="mp2tmp.mp2"
-MPGTMP="mpgtmp.mpg"
-HEADERTMP="header.tmp"
-GOPTMP="gop.tmp"
-STATTMP="stat.tmp"
-THUMBTMP="thumb.tmp"
-
 MENCODER="mencoder"
 MPLAYER="mplayer"
 MPEG_STAT="mpeg_stat"
 
-
-
-
 #Print a help message if requested.
 if "-h" in sys.argv or "-help" in sys.argv or "--help" in sys.argv:
 	print(__doc__)
-	raise SystemExit
-
-def cleanup_callback(a,b):
-	print("Removing temporary files")
-	if os.path.lexists(MPGTMP):
-		os.unlink(MPGTMP)
-	if os.path.lexists(MP2TMP):
-		os.unlink(MP2TMP)
-	if os.path.lexists(HEADERTMP):
-		os.unlink(HEADERTMP)
-	if os.path.lexists(GOPTMP):
-		os.unlink(GOPTMP)
-	if os.path.lexists(STATTMP):
-		os.unlink(STATTMP)
-	if os.path.lexists(THUMBTMP):
-		os.unlink(THUMBTMP)
-	if os.path.lexists(SHOTTMP):
-		os.rmdir(SHOTTMP)
+	# raise SystemExit
 
 def conv_vid(file):
 	options.pf = 3
@@ -160,11 +133,11 @@ def conv_vid(file):
 			options.fps = 24
 		v_cmd = f'"{file}" -v -ofps {options.fps} -sws 9 -vf scale={options.width}:{options.height}:::3,harddup -nosound -ovc lavc -lavcopts vcodec=mpeg1video:vstrict=-2:mbd=2:trell:o=mpv_flags=+mv0:vmax_b_frames=2:cmp=6:subcmp=6:precmp=6:dia=4:predia=4:bidir_refine=4:mv0_threshold=0:last_pred=3:vbitrate={options.vbps}'
 	elif options.hq:
-		v_cmd = f'"{file}" -v -ofps {options.fps} -sws 9 -vf scale={options.width}:{options.height}:::3,harddup -nosound -ovc lavc -lavcopts vcodec=mpeg1video:vstrict=-2:mbd=2:trell:o=mpv_flags=+mv0:keyint=10:cmp=6:subcmp=6:precmp=6:dia=3:predia=3:last_pred=3:vbitrate={options.vbps} -o {MPGTMP} -of rawvideo'
+		v_cmd = f'"{file}" -v -ofps {options.fps} -sws 9 -vf scale={options.width}:{options.height}:::3,harddup -nosound -ovc lavc -lavcopts vcodec=mpeg1video:vstrict=-2:mbd=2:trell:o=mpv_flags=+mv0:keyint=10:cmp=6:subcmp=6:precmp=6:dia=3:predia=3:last_pred=3:vbitrate={options.vbps} -o {MPGTMP.name} -of rawvideo'
 	elif options.lq:
-		v_cmd = f'"{file}" -v -ofps {options.fps} -vf scale={options.width}:{options.height},harddup -nosound -ovc lavc -lavcopts vcodec=mpeg1video:vstrict=-2:keyint=10:vbitrate={options.vbps} -o {MPGTMP} -of rawvideo'
+		v_cmd = f'"{file}" -v -ofps {options.fps} -vf scale={options.width}:{options.height},harddup -nosound -ovc lavc -lavcopts vcodec=mpeg1video:vstrict=-2:keyint=10:vbitrate={options.vbps} -o {MPGTMP.name} -of rawvideo'
 	else :
-		v_cmd = f'"{file}" -v -ofps {options.fps} -sws 9 -vf scale={options.width}:{options.height}:::3,harddup -nosound -ovc lavc -lavcopts vcodec=mpeg1video:vstrict=-2:keyint=10:mbd=2:trell:o=mpv_flags=+mv0:cmp=2:subcmp=2:precmp=2:vbitrate={options.vbps} -o {MPGTMP} -of rawvideo'
+		v_cmd = f'"{file}" -v -ofps {options.fps} -sws 9 -vf scale={options.width}:{options.height}:::3,harddup -nosound -ovc lavc -lavcopts vcodec=mpeg1video:vstrict=-2:keyint=10:mbd=2:trell:o=mpv_flags=+mv0:cmp=2:subcmp=2:precmp=2:vbitrate={options.vbps} -o {MPGTMP.name} -of rawvideo'
 	
 	if options.nosub:
 		if options.sub is not None:
@@ -192,8 +165,8 @@ def conv_vid(file):
 	v_cmd = MENCODER + " " + v_cmd
 	if options.tp:
 		v_cmd_two = v_cmd
-		v_cmd = f'{v_cmd}:vpass=1:turbo:vb_strategy=2:vrc_maxrate=500:vrc_minrate=0:vrc_buf_size=327:intra_matrix=8,9,12,22,26,27,29,34,9,10,14,26,27,29,34,37,12,14,18,27,29,34,37,38,22,26,27,31,36,37,38,40,26,27,29,36,39,38,40,48,27,29,34,37,38,40,48,58,29,34,37,38,40,48,58,69,34,37,38,40,48,58,69,79:inter_matrix=16,18,20,22,24,26,28,30,18,20,22,24,26,28,30,32,20,22,24,26,28,30,32,34,22,24,26,30,32,32,34,36,24,26,28,32,34,34,36,38,26,28,30,32,34,36,38,40,28,30,32,34,36,38,42,42,30,32,34,36,38,40,42,44 -o {MPGTMP} -of rawvideo'
-		v_cmd_two = f'{v_cmd_two}:vpass=2:vrc_maxrate=500:vrc_minrate=0:vrc_buf_size=327:keyint=10:intra_matrix=8,9,12,22,26,27,29,34,9,10,14,26,27,29,34,37,12,14,18,27,29,34,37,38,22,26,27,31,36,37,38,40,26,27,29,36,39,38,40,48,27,29,34,37,38,40,48,58,29,34,37,38,40,48,58,69,34,37,38,40,48,58,69,79:inter_matrix=16,18,20,22,24,26,28,30,18,20,22,24,26,28,30,32,20,22,24,26,28,30,32,34,22,24,26,30,32,32,34,36,24,26,28,32,34,34,36,38,26,28,30,32,34,36,38,40,28,30,32,34,36,38,42,42,30,32,34,36,38,40,42,44 -o {MPGTMP} -of rawvideo'
+		v_cmd = f'{v_cmd}:vpass=1:turbo:vb_strategy=2:vrc_maxrate=500:vrc_minrate=0:vrc_buf_size=327:intra_matrix=8,9,12,22,26,27,29,34,9,10,14,26,27,29,34,37,12,14,18,27,29,34,37,38,22,26,27,31,36,37,38,40,26,27,29,36,39,38,40,48,27,29,34,37,38,40,48,58,29,34,37,38,40,48,58,69,34,37,38,40,48,58,69,79:inter_matrix=16,18,20,22,24,26,28,30,18,20,22,24,26,28,30,32,20,22,24,26,28,30,32,34,22,24,26,30,32,32,34,36,24,26,28,32,34,34,36,38,26,28,30,32,34,36,38,40,28,30,32,34,36,38,42,42,30,32,34,36,38,40,42,44 -o {MPGTMP.name} -of rawvideo'
+		v_cmd_two = f'{v_cmd_two}:vpass=2:vrc_maxrate=500:vrc_minrate=0:vrc_buf_size=327:keyint=10:intra_matrix=8,9,12,22,26,27,29,34,9,10,14,26,27,29,34,37,12,14,18,27,29,34,37,38,22,26,27,31,36,37,38,40,26,27,29,36,39,38,40,48,27,29,34,37,38,40,48,58,29,34,37,38,40,48,58,69,34,37,38,40,48,58,69,79:inter_matrix=16,18,20,22,24,26,28,30,18,20,22,24,26,28,30,32,20,22,24,26,28,30,32,34,22,24,26,30,32,32,34,36,24,26,28,32,34,34,36,38,26,28,30,32,34,36,38,40,28,30,32,34,36,38,42,42,30,32,34,36,38,40,42,44 -o {MPGTMP.name} -of rawvideo'
 		v_cmd_two = v_cmd_two + " " + options.mv
 		v_cmd = v_cmd + " " + options.mv
 	else:
@@ -232,13 +205,13 @@ def conv_aud(file):
 		c = int(m.group(1))
 		if options.channels is None and options.dpg != 0:
 			if c >= 2:
-				a_cmd = f'{a_cmd}:mode=stereo -o {MP2TMP} -af {vol}channels=2,resample={options.hz}:1:2'
+				a_cmd = f'{a_cmd}:mode=stereo -o {MP2TMP.name} -af {vol}channels=2,resample={options.hz}:1:2'
 			else:
-				a_cmd = f'{a_cmd}:mode=mono -o {MP2TMP} -af {vol}channels=1,resample={options.hz}:1:2'
+				a_cmd = f'{a_cmd}:mode=mono -o {MP2TMP.name} -af {vol}channels=1,resample={options.hz}:1:2'
 		elif options.channels >= 2 and options.dpg != 0:
-			a_cmd = f'{a_cmd}:mode=stereo -o {MP2TMP} -af {vol}channels=2,resample={options.hz}:1:2'
+			a_cmd = f'{a_cmd}:mode=stereo -o {MP2TMP.name} -af {vol}channels=2,resample={options.hz}:1:2'
 		else:
-			a_cmd = f'{a_cmd}:mode=mono -o {MP2TMP} -af {vol}channels=1,resample={options.hz}:1:2'
+			a_cmd = f'{a_cmd}:mode=mono -o {MP2TMP.name} -af {vol}channels=1,resample={options.hz}:1:2'
 	else:
 		# This condition will only be true if the video does not have an audio stream, or if mplayer errors out for some other reason.
 		# Having no audio stream will crash Moonshell as it's expecting something that doesn't exist
@@ -247,12 +220,11 @@ def conv_aud(file):
 		if vid_length:
 			seconds = float(vid_length.group(1))
 			# use sox with the mp3 libsox format to generate a silent mp2 file
-			a_cmd = f"sox -n -r 48000 -c 1 {MP2TMP} trim 0.0 {seconds}"
+			a_cmd = f"sox -n -r 48000 -c 1 {MP2TMP.name} trim 0.0 {seconds}"
 			silent = True
 		else:
 			# this shouldn't occur if the user is passing an actual video file to the script
 			print("Error! See Mplayer output below:\n{}".format(identify))
-			cleanup_callback(0,0)
 			exit(1)
 
 	if options.aid is not None:
@@ -281,11 +253,11 @@ def write_header(frames):
 		audiostart += 12
 	elif options.dpg == 4:
 		audiostart += 98320
-	audiosize = os.stat(MP2TMP)[stat.ST_SIZE]
-	videosize = os.stat(MPGTMP)[stat.ST_SIZE]
+	audiosize = os.stat(MP2TMP.name)[stat.ST_SIZE]
+	videosize = os.stat(MPGTMP.name)[stat.ST_SIZE]
 	videostart = audiostart + audiosize
 	videoend = videostart + videosize
-	f=open(HEADERTMP, 'wb')
+	f=open(HEADERTMP.name, 'wb')
 	DPG = f'DPG{options.dpg}'.encode('utf-8')
 	headerValues = [ DPG, int(frames), options.fps, 0, options.hz , 0 ,int(audiostart), int(audiosize), int(videostart), int(videosize) ]
 	
@@ -300,7 +272,7 @@ def write_header(frames):
 	f.write (struct.pack ( "<l" , headerValues[8]))
 	f.write (struct.pack ( "<l" , headerValues[9]))
 	if options.dpg >= 2:
-		gopsize = os.stat(GOPTMP)[stat.ST_SIZE]
+		gopsize = os.stat(GOPTMP.name)[stat.ST_SIZE]
 		f.write (struct.pack ( "<l" , videoend ))
 		f.write (struct.pack ( "<l" , gopsize))
 	#sure !? and DPG3 ?
@@ -312,13 +284,13 @@ def write_header(frames):
 
 def mpeg_stat():
 	p = re.compile (r"frames: ([0-9]*)\.")
-	s_out = subprocess.getoutput( MPEG_STAT + " -offset " + STATTMP + " " + MPGTMP )
+	s_out = subprocess.getoutput( MPEG_STAT + " -offset " + STATTMP.name + " " + MPGTMP.name )
 	m = p.search( s_out )
 	if m:
 		frames = m.group(1)
 		if options.dpg >= 2:
-			gop=open(GOPTMP, 'wb')
-			stat=open(STATTMP, 'rb')
+			gop=open(GOPTMP.name, 'wb')
+			stat=open(STATTMP.name, 'rb')
 			frame = 0
 			for line in stat:
 				sline = line.split()
@@ -343,7 +315,6 @@ def conv_file(file):
 	frames = mpeg_stat()
 	if frames == 0:
 		print("Error using mpeg_stat ... see error above")
-		cleanup_callback (0,0)
 		return
 	if options.dpg == 4:
 		conv_thumb(options.thumb,frames)
@@ -361,7 +332,6 @@ def conv_file(file):
 	else:
 		concat(dpgname,HEADERTMP,MP2TMP,MPGTMP)
 	
-	cleanup_callback (0,0)
 	print("Done converting \"" + file + "\" to \"" + dpgname + "\"")
 
 def conv_thumb(file, frames):
@@ -372,8 +342,8 @@ def conv_thumb(file, frames):
 	shot_file = None
 	if not os.path.lexists(file):
 		print("Preview file will be generated from video file.")
-		shot_file = SHOTTMP +"/00000001.png"
-		s_cmd = f'{MPLAYER} {MPGTMP} -nosound -vo png:outdir={SHOTTMP} -frames 1 -ss {int((int(frames)/options.fps)/10)}'
+		shot_file = SHOTTMP.name +"/00000001.png"
+		s_cmd = f'{MPLAYER} {MPGTMP.name} -nosound -vo png:outdir={SHOTTMP.name} -frames 1 -ss {int((int(frames)/options.fps)/10)}'
 		output = subprocess.getoutput(s_cmd)
 		#check for "Exiting... (End of file)" ?
 		file = shot_file
@@ -405,7 +375,7 @@ def conv_thumb(file, frames):
 	row_fmt=('H'*dest_w)
 	thumb_data = b''.join(struct.pack(row_fmt, *row) for row in data)
 
-	thumb_file=open(THUMBTMP, 'wb')
+	thumb_file=open(THUMBTMP.name, 'wb')
 	thumb_file.write(thumb_data)
 	thumb_file.close()
 	#to create a file readable by an image viewer:
@@ -423,24 +393,18 @@ def conv_thumb(file, frames):
 
 def init_names():
 	global MPGTMP,MP2TMP,HEADERTMP,GOPTMP,STATTMP,THUMBTMP,SHOTTMP
-	a,MP2TMP=tempfile.mkstemp(suffix=".mp2")
-	os.close(a)
-	a,MPGTMP=tempfile.mkstemp()
-	os.close(a)
-	a,HEADERTMP=tempfile.mkstemp()
-	os.close(a)
-	a,GOPTMP=tempfile.mkstemp()
-	os.close(a)
-	a,STATTMP=tempfile.mkstemp()
-	os.close(a)
-	a,THUMBTMP=tempfile.mkstemp()
-	os.close(a)
-	SHOTTMP=tempfile.mkdtemp()
+	MP2TMP=tempfile.NamedTemporaryFile(suffix=".mp2")
+	MPGTMP=tempfile.NamedTemporaryFile()
+	HEADERTMP=tempfile.NamedTemporaryFile()
+	GOPTMP=tempfile.NamedTemporaryFile()
+	STATTMP=tempfile.NamedTemporaryFile()
+	THUMBTMP=tempfile.NamedTemporaryFile()
+	SHOTTMP=tempfile.TemporaryDirectory()
 
 def concat(out,*files):
 	outfile = open(out,'wb')
 	for name in files:
-		outfile.write( open(name,"rb").read() )
+		outfile.write( open(name.name,"rb").read() )
 	outfile.close()
 
 
@@ -469,9 +433,6 @@ parser.add_option("--sid", type="int" , dest="sid")
 parser.add_option("--aid", type="int" , dest="aid")
 parser.add_option("-2","--tp",action="store_true", dest="tp", default=False)
 (options, args) = parser.parse_args()
-
-signal.signal(signal.SIGINT, cleanup_callback)
-signal.signal(signal.SIGTERM, cleanup_callback)
 
 if options.dpg > 4:
 	options.dpg = 2
