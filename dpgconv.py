@@ -450,8 +450,9 @@ for i in range(len(requirements)):
 		missing_requirement = True
 
 # check if sox has mp3/mp2 format extension
-sox_test = subprocess.run('sox -h | grep "mp2"', shell=True, capture_output=True)
-if(sox_test.returncode == 1):
+sox_test = subprocess.run(['sox', '-h'], shell=False, capture_output=True, encoding="utf-8")
+mp2_test = re.compile("mp2").search(sox_test.stdout)
+if mp2_test is None:
 	print("Error, libsox-fmt-mp3 is missing!")
 	missing_requirement = True
 
