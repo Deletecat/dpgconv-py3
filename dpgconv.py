@@ -114,31 +114,33 @@ def conv_vid(file):
 	options.pf = 3
 
 	if options.aspect:
-		aspect = subprocess.getoutput(f'{MPLAYER} -frames 1 -vo null -ao null -identify "{file}" | grep -E "^ID_VIDEO_ASPECT" | tail -1')
-		p = re.compile ("ID_VIDEO_ASPECT=(.*)")
-		m = p.search(aspect)
-		if m:
-			print(f"Aspect ratio = {m.group(1)}")
-			ar = float(m.group(1))
-			if int(256.0/ar) <= 192:
-				options.width=256
-				options.height=int(256.0/ar)
-			else:
-				options.height=192
-				options.width=int(ar*192.0)
-			print(f"Target size set to {options.width}x{options.height}.")
+		aspect = subprocess.run(["mplayer", "-frames", "1", "-vo", "null", "-ao", "null", "-identify", "-nolirc", file], shell=False, capture_output=True, encoding="utf-8")
+		# calculate aspect ratio from width/height values
+		# fixes issue with mplayer where some videos show as having 0.0000 aspect ratio
+		width = float(re.compile("ID_VIDEO_WIDTH=(.*)").search(aspect.stdout).group(1))
+		height = float(re.compile("ID_VIDEO_HEIGHT=(.*)").search(aspect.stdout).group(1))
+		aspect_ratio = width/height
+
+		print(f"Aspect ratio = {aspect_ratio}")
+		if int(256.0/aspect_ratio) <= 192:
+			options.width=256
+			options.height=int(256.0/aspect_ratio)
+		else:
+			options.height=192
+			options.width=int(aspect_ratio*192.0)
+		print(f"Target size set to {options.width}x{options.height}.")
 
 	if options.tp:
 		if options.fps < 24:
 			print("mencoder won't work with double pass and fps < 24, forcing fps = 24")
 			options.fps = 24
-		v_cmd = f'"{file}" -v -ofps {options.fps} -sws 9 -vf scale={options.width}:{options.height}:::3,harddup -nosound -ovc lavc -lavcopts vcodec=mpeg1video:vstrict=-2:mbd=2:trell:o=mpv_flags=+mv0:vmax_b_frames=2:cmp=6:subcmp=6:precmp=6:dia=4:predia=4:bidir_refine=4:mv0_threshold=0:last_pred=3:vbitrate={options.vbps}'
+		v_cmd = f'"{file}" -v -ofps {options.fps} -sws 9 -vf scale={options.width}:{options.height}:::3,expand=256:192,harddup -nosound -ovc lavc -lavcopts vcodec=mpeg1video:vstrict=-2:mbd=2:trell:o=mpv_flags=+mv0:vmax_b_frames=2:cmp=6:subcmp=6:precmp=6:dia=4:predia=4:bidir_refine=4:mv0_threshold=0:last_pred=3:vbitrate={options.vbps}'
 	elif options.hq:
-		v_cmd = f'"{file}" -v -ofps {options.fps} -sws 9 -vf scale={options.width}:{options.height}:::3,harddup -nosound -ovc lavc -lavcopts vcodec=mpeg1video:vstrict=-2:mbd=2:trell:o=mpv_flags=+mv0:keyint=10:cmp=6:subcmp=6:precmp=6:dia=3:predia=3:last_pred=3:vbitrate={options.vbps} -o {MPGTMP.name} -of rawvideo'
+		v_cmd = f'"{file}" -v -ofps {options.fps} -sws 9 -vf scale={options.width}:{options.height}:::3,expand=256:192,harddup -nosound -ovc lavc -lavcopts vcodec=mpeg1video:vstrict=-2:mbd=2:trell:o=mpv_flags=+mv0:keyint=10:cmp=6:subcmp=6:precmp=6:dia=3:predia=3:last_pred=3:vbitrate={options.vbps} -o {MPGTMP.name} -of rawvideo'
 	elif options.lq:
-		v_cmd = f'"{file}" -v -ofps {options.fps} -vf scale={options.width}:{options.height},harddup -nosound -ovc lavc -lavcopts vcodec=mpeg1video:vstrict=-2:keyint=10:vbitrate={options.vbps} -o {MPGTMP.name} -of rawvideo'
+		v_cmd = f'"{file}" -v -ofps {options.fps} -vf scale={options.width}:{options.height},expand=256:192,harddup -nosound -ovc lavc -lavcopts vcodec=mpeg1video:vstrict=-2:keyint=10:vbitrate={options.vbps} -o {MPGTMP.name} -of rawvideo'
 	else :
-		v_cmd = f'"{file}" -v -ofps {options.fps} -sws 9 -vf scale={options.width}:{options.height}:::3,harddup -nosound -ovc lavc -lavcopts vcodec=mpeg1video:vstrict=-2:keyint=10:mbd=2:trell:o=mpv_flags=+mv0:cmp=2:subcmp=2:precmp=2:vbitrate={options.vbps} -o {MPGTMP.name} -of rawvideo'
+		v_cmd = f'"{file}" -v -ofps {options.fps} -sws 9 -vf scale={options.width}:{options.height}:::3,expand=256:192,harddup -nosound -ovc lavc -lavcopts vcodec=mpeg1video:vstrict=-2:keyint=10:mbd=2:trell:o=mpv_flags=+mv0:cmp=2:subcmp=2:precmp=2:vbitrate={options.vbps} -o {MPGTMP.name} -of rawvideo'
 	
 	if options.nosub:
 		if options.sub is not None:
@@ -433,10 +435,9 @@ parser.add_option("--aid", type="int" , dest="aid")
 parser.add_option("-2","--tp",action="store_true", dest="tp", default=False)
 (options, args) = parser.parse_args()
 
-if options.dpg > 4:
-	options.dpg = 2
-if options.dpg < 0:
-	options.dpg = 2
+if options.dpg > 4 or options.dpg < 0:
+	print("Error, invalid DPG version selection! Defaulting to DPG4...")
+	options.dpg = 4
 
 # check requirements
 # we don't need to check for pillow as that would trigger earlier in the script
