@@ -111,8 +111,6 @@ if "-h" in sys.argv or "-help" in sys.argv or "--help" in sys.argv:
 	# raise SystemExit
 
 def conv_vid(file):
-	options.pf = 3
-
 	if options.aspect:
 		aspect = subprocess.run(["mplayer", "-frames", "1", "-vo", "null", "-ao", "null", "-identify", "-nolirc", file], shell=False, capture_output=True, encoding="utf-8")
 		# calculate aspect ratio from width/height values
@@ -260,6 +258,7 @@ def write_header(frames):
 	videosize = os.stat(MPGTMP.name)[stat.ST_SIZE]
 	videostart = audiostart + audiosize
 	videoend = videostart + videosize
+	pixel_format = 3
 	f=open(HEADERTMP.name, 'wb')
 	DPG = f'DPG{options.dpg}'.encode('utf-8')
 	headerValues = [ DPG, int(frames), options.fps, 0, options.hz , 0 ,int(audiostart), int(audiosize), int(videostart), int(videosize) ]
@@ -280,7 +279,7 @@ def write_header(frames):
 		f.write (struct.pack ( "<l" , gopsize))
 	#sure !? and DPG3 ?
 	if options.dpg != 1:
-		f.write (struct.pack ( "<l" , options.pf ))
+		f.write (struct.pack ( "<l" , pixel_format ))
 	if options.dpg == 4:
 		f.write (struct.pack ( "4s" , b"THM0"))
 	f.close()
