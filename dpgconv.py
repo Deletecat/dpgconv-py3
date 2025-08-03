@@ -101,12 +101,19 @@ if "-h" in sys.argv or "-help" in sys.argv or "--help" in sys.argv:
 	raise SystemExit
 
 def conv_vid(file):
+	ident = subprocess.run(["mplayer", "-frames", "1", "-vo", "null", "-ao", "null", "-identify", "-nolirc", file], shell=False, capture_output=True, encoding="utf-8")
+	frames = float(re.compile("ID_VIDEO_FPS=(.*)").search(ident.stdout).group(1))
+	if options.tp and frames < 24:
+		# videos lower than 24FPS will result in duplicate frames and other issues without interpolation
+		print("Input video framerate below what is required for double pass encoding (24FPS). Selecting high quality video encoding instead.")
+		options.tp = False
+		options.hq = True
+
 	if options.aspect:
-		aspect = subprocess.run(["mplayer", "-frames", "1", "-vo", "null", "-ao", "null", "-identify", "-nolirc", file], shell=False, capture_output=True, encoding="utf-8")
 		# calculate aspect ratio from width/height values
 		# fixes issue with mplayer where some videos show as having 0.0000 aspect ratio
-		width = float(re.compile("ID_VIDEO_WIDTH=(.*)").search(aspect.stdout).group(1))
-		height = float(re.compile("ID_VIDEO_HEIGHT=(.*)").search(aspect.stdout).group(1))
+		width = float(re.compile("ID_VIDEO_WIDTH=(.*)").search(ident.stdout).group(1))
+		height = float(re.compile("ID_VIDEO_HEIGHT=(.*)").search(ident.stdout).group(1))
 		aspect_ratio = width/height
 
 		print(f"Aspect ratio = {aspect_ratio}")
