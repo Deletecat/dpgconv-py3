@@ -45,12 +45,6 @@ command line options:
 		try to keep aspect ratio
 	
 	NOTE:	width/height have no effect when --keep-aspect is set
-	
-	--mv
-		additional parameters for mencoder for video
-
-	--ma
-		additional parameters for mencoder for audio
 
 	Video Thumbnail
 	--thumb xxx
@@ -108,7 +102,7 @@ MPEG_STAT="mpeg_stat"
 #Print a help message if requested.
 if "-h" in sys.argv or "-help" in sys.argv or "--help" in sys.argv:
 	print(__doc__)
-	# raise SystemExit
+	raise SystemExit
 
 def conv_vid(file):
 	if options.aspect:
@@ -168,10 +162,7 @@ def conv_vid(file):
 		v_cmd_two = v_cmd
 		v_cmd = f'{v_cmd}:vpass=1:turbo:vb_strategy=2:vrc_maxrate=500:vrc_minrate=0:vrc_buf_size=327:intra_matrix=8,9,12,22,26,27,29,34,9,10,14,26,27,29,34,37,12,14,18,27,29,34,37,38,22,26,27,31,36,37,38,40,26,27,29,36,39,38,40,48,27,29,34,37,38,40,48,58,29,34,37,38,40,48,58,69,34,37,38,40,48,58,69,79:inter_matrix=16,18,20,22,24,26,28,30,18,20,22,24,26,28,30,32,20,22,24,26,28,30,32,34,22,24,26,30,32,32,34,36,24,26,28,32,34,34,36,38,26,28,30,32,34,36,38,40,28,30,32,34,36,38,42,42,30,32,34,36,38,40,42,44 -o {MPGTMP.name} -of rawvideo'
 		v_cmd_two = f'{v_cmd_two}:vpass=2:vrc_maxrate=500:vrc_minrate=0:vrc_buf_size=327:keyint=10:intra_matrix=8,9,12,22,26,27,29,34,9,10,14,26,27,29,34,37,12,14,18,27,29,34,37,38,22,26,27,31,36,37,38,40,26,27,29,36,39,38,40,48,27,29,34,37,38,40,48,58,29,34,37,38,40,48,58,69,34,37,38,40,48,58,69,79:inter_matrix=16,18,20,22,24,26,28,30,18,20,22,24,26,28,30,32,20,22,24,26,28,30,32,34,22,24,26,30,32,32,34,36,24,26,28,32,34,34,36,38,26,28,30,32,34,36,38,40,28,30,32,34,36,38,42,42,30,32,34,36,38,40,42,44 -o {MPGTMP.name} -of rawvideo'
-		v_cmd_two = v_cmd_two + " " + options.mv
-		v_cmd = v_cmd + " " + options.mv
-	else:
-		v_cmd = v_cmd + " " + options.mv
+
 	#print (v_cmd)
 	#print (v_cmd_two)
 	proc = subprocess.Popen(v_cmd,shell=True,stdout=subprocess.PIPE,universal_newlines=True,stderr=open('/dev/null', 'w'))
@@ -231,7 +222,6 @@ def conv_aud(file):
 	if options.aid is not None:
 		a_cmd = a_cmd + " -aid " + str(options.aid)
 
-	a_cmd = a_cmd + " " + options.ma
 	#print(a_cmd)
 
 	proc = subprocess.Popen(a_cmd,shell=True,stdout=subprocess.PIPE,universal_newlines=True,stderr=subprocess.STDOUT)
@@ -424,8 +414,6 @@ parser.add_option("-c","--channels", type="int", dest="channels")
 parser.add_option("--subcp", dest="subcp")
 parser.add_option("-s","--sub", dest="sub")
 parser.add_option("--font", dest="font")
-parser.add_option("--mv", dest="mv", default="")
-parser.add_option("--ma", dest="ma", default="")
 parser.add_option("-t", "--thumb", dest="thumb", default="")
 parser.add_option("--nosub", action="store_true", dest="nosub", default=False)
 parser.add_option("--dpg", type="int" , dest="dpg", default=4)
