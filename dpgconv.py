@@ -95,10 +95,6 @@ import stat
 import struct
 import subprocess
 
-MENCODER="mencoder"
-MPLAYER="mplayer"
-MPEG_STAT="mpeg_stat"
-
 #Print a help message if requested.
 if "-h" in sys.argv or "-help" in sys.argv or "--help" in sys.argv:
 	print(__doc__)
@@ -122,88 +118,83 @@ def conv_vid(file):
 			options.width=int(aspect_ratio*192.0)
 		print(f"Target size set to {options.width}x{options.height}.")
 
+	v_cmd = ["mencoder"]
 	if options.tp:
 		if options.fps < 24:
 			print("mencoder won't work with double pass and fps < 24, forcing fps = 24")
 			options.fps = 24
-		v_cmd = f'"{file}" -v -ofps {options.fps} -sws 9 -vf scale={options.width}:{options.height}:::3,expand=256:192,harddup -nosound -ovc lavc -lavcopts vcodec=mpeg1video:vstrict=-2:mbd=2:trell:o=mpv_flags=+mv0:vmax_b_frames=2:cmp=6:subcmp=6:precmp=6:dia=4:predia=4:bidir_refine=4:mv0_threshold=0:last_pred=3:vbitrate={options.vbps}'
+		v_cmd.extend([file, "-v", "-ofps", str(options.fps), "-sws", "9", "-vf", f"scale={options.width}:{options.height}:::3,expand=256:192,harddup", "-nosound", "-ovc", "lavc", "-lavcopts", f"vcodec=mpeg1video:vstrict=-2:mbd=2:trell:o=mpv_flags=+mv0:vmax_b_frames=2:cmp=6:subcmp=6:precmp=6:dia=4:predia=4:bidir_refine=4:mv0_threshold=0:last_pred=3:vbitrate={options.vbps}"])
 	elif options.hq:
-		v_cmd = f'"{file}" -v -ofps {options.fps} -sws 9 -vf scale={options.width}:{options.height}:::3,expand=256:192,harddup -nosound -ovc lavc -lavcopts vcodec=mpeg1video:vstrict=-2:mbd=2:trell:o=mpv_flags=+mv0:keyint=10:cmp=6:subcmp=6:precmp=6:dia=3:predia=3:last_pred=3:vbitrate={options.vbps} -o {MPGTMP.name} -of rawvideo'
+		v_cmd.extend([file, "-v", "-ofps", str(options.fps), "-sws", "9", "-vf", f"scale={options.width}:{options.height}:::3,expand=256:192,harddup", "-nosound", "-ovc", "lavc", "-lavcopts", f"vcodec=mpeg1video:vstrict=-2:mbd=2:trell:o=mpv_flags=+mv0:keyint=10:cmp=6:subcmp=6:precmp=6:dia=3:predia=3:last_pred=3:vbitrate={options.vbps}", "-o", MPGTMP.name, "-of", "rawvideo"])
 	elif options.lq:
-		v_cmd = f'"{file}" -v -ofps {options.fps} -vf scale={options.width}:{options.height},expand=256:192,harddup -nosound -ovc lavc -lavcopts vcodec=mpeg1video:vstrict=-2:keyint=10:vbitrate={options.vbps} -o {MPGTMP.name} -of rawvideo'
-	else :
-		v_cmd = f'"{file}" -v -ofps {options.fps} -sws 9 -vf scale={options.width}:{options.height}:::3,expand=256:192,harddup -nosound -ovc lavc -lavcopts vcodec=mpeg1video:vstrict=-2:keyint=10:mbd=2:trell:o=mpv_flags=+mv0:cmp=2:subcmp=2:precmp=2:vbitrate={options.vbps} -o {MPGTMP.name} -of rawvideo'
+		v_cmd.extend([file, "-v", "-ofps", str(options.fps), "-vf", f"scale={options.width}:{options.height},expand=256:192,harddup", "-nosound", "-ovc", "lavc", "-lavcopts", f"vcodec=mpeg1video:vstrict=-2:keyint=10:vbitrate={options.vbps}", "-o", MPGTMP.name, "-of", "rawvideo"])
+	else:
+		v_cmd.extend([file, "-v", "-ofps", str(options.fps), "-sws", "9", "-vf", f"scale={options.width}:{options.height}:::3,expand=256:192,harddup", "-nosound", "-ovc", "lavc", "-lavcopts", f"vcodec=mpeg1video:vstrict=-2:keyint=10:mbd=2:trell:o=mpv_flags=+mv0:cmp=2:subcmp=2:precmp=2:vbitrate={options.vbps}", "-o", MPGTMP.name, "-of", "rawvideo"])
 	
 	if options.nosub:
 		if options.sub is not None:
-			v_cmd = f'" -sub "{options.sub}" {v_cmd}'
+			v_cmd.extend(["-sub",options.sub])
 	else:
 		basename = os.path.splitext ( file )[0]
 		if options.sid is not None:
-			v_cmd = f' -sid "{str(options.sid)}" {v_cmd}'
+			v_cmd.extend(["-sid", str(options.sid)])
 		if options.sub is not None:
-			v_cmd = f' -sub "{options.sub}" {v_cmd}'
+			v_cmd.extend(["-sub", options.sub])
 		elif os.path.exists ( basename + ".ass" ):
-			v_cmd = f' -sub "{basename}.ass" {v_cmd}'
+			v_cmd.extend(["-sub", f"{basename}.ass"])
 		elif os.path.exists ( basename + ".srt" ):
-			v_cmd = f' -sub "{basename}.srt" {v_cmd}'
+			v_cmd.extend(["-sub", f"{basename}.srt"])
 		elif os.path.exists ( basename + ".sub" ):
-			v_cmd = f' -sub "{basename}.sub" {v_cmd}'
+			v_cmd.extend(["-sub", f"{basename}.sub"])
 		elif os.path.exists ( basename + ".ssa" ):
-			v_cmd = f' -sub "{basename}.ssa" {v_cmd}'
+			v_cmd.extend(["-sub", f"{basename}.ssa"])
 	
 	if options.subcp is not None:
-		v_cmd = f' -subcp {options.subcp} {v_cmd}'
+		v_cmd.extend["-subcp", options.subcp]
 	if options.font is not None:
-		v_cmd = f' -font "{options.font}" {v_cmd}'
+		v_cmd.extend(["-font", f'"{options.font}"'])
 
-	v_cmd = MENCODER + " " + v_cmd
 	if options.tp:
-		v_cmd_two = v_cmd
-		v_cmd = f'{v_cmd}:vpass=1:turbo:vb_strategy=2:vrc_maxrate=500:vrc_minrate=0:vrc_buf_size=327:intra_matrix=8,9,12,22,26,27,29,34,9,10,14,26,27,29,34,37,12,14,18,27,29,34,37,38,22,26,27,31,36,37,38,40,26,27,29,36,39,38,40,48,27,29,34,37,38,40,48,58,29,34,37,38,40,48,58,69,34,37,38,40,48,58,69,79:inter_matrix=16,18,20,22,24,26,28,30,18,20,22,24,26,28,30,32,20,22,24,26,28,30,32,34,22,24,26,30,32,32,34,36,24,26,28,32,34,34,36,38,26,28,30,32,34,36,38,40,28,30,32,34,36,38,42,42,30,32,34,36,38,40,42,44 -o {MPGTMP.name} -of rawvideo'
-		v_cmd_two = f'{v_cmd_two}:vpass=2:vrc_maxrate=500:vrc_minrate=0:vrc_buf_size=327:keyint=10:intra_matrix=8,9,12,22,26,27,29,34,9,10,14,26,27,29,34,37,12,14,18,27,29,34,37,38,22,26,27,31,36,37,38,40,26,27,29,36,39,38,40,48,27,29,34,37,38,40,48,58,29,34,37,38,40,48,58,69,34,37,38,40,48,58,69,79:inter_matrix=16,18,20,22,24,26,28,30,18,20,22,24,26,28,30,32,20,22,24,26,28,30,32,34,22,24,26,30,32,32,34,36,24,26,28,32,34,34,36,38,26,28,30,32,34,36,38,40,28,30,32,34,36,38,42,42,30,32,34,36,38,40,42,44 -o {MPGTMP.name} -of rawvideo'
+		v_cmd_two = v_cmd.copy()
+		v_cmd[-1] += ':vpass=1:turbo:vb_strategy=2:vrc_maxrate=500:vrc_minrate=0:vrc_buf_size=327:intra_matrix=8,9,12,22,26,27,29,34,9,10,14,26,27,29,34,37,12,14,18,27,29,34,37,38,22,26,27,31,36,37,38,40,26,27,29,36,39,38,40,48,27,29,34,37,38,40,48,58,29,34,37,38,40,48,58,69,34,37,38,40,48,58,69,79:inter_matrix=16,18,20,22,24,26,28,30,18,20,22,24,26,28,30,32,20,22,24,26,28,30,32,34,22,24,26,30,32,32,34,36,24,26,28,32,34,34,36,38,26,28,30,32,34,36,38,40,28,30,32,34,36,38,42,42,30,32,34,36,38,40,42,44'
+		v_cmd.extend(["-o", MPGTMP.name, "-of", "rawvideo"])
+		v_cmd_two[-1] += ':vpass=2:vrc_maxrate=500:vrc_minrate=0:vrc_buf_size=327:keyint=10:intra_matrix=8,9,12,22,26,27,29,34,9,10,14,26,27,29,34,37,12,14,18,27,29,34,37,38,22,26,27,31,36,37,38,40,26,27,29,36,39,38,40,48,27,29,34,37,38,40,48,58,29,34,37,38,40,48,58,69,34,37,38,40,48,58,69,79:inter_matrix=16,18,20,22,24,26,28,30,18,20,22,24,26,28,30,32,20,22,24,26,28,30,32,34,22,24,26,30,32,32,34,36,24,26,28,32,34,34,36,38,26,28,30,32,34,36,38,40,28,30,32,34,36,38,42,42,30,32,34,36,38,40,42,44'
+		v_cmd_two.extend(["-o", MPGTMP.name, "-of", "rawvideo"])
 
-	#print (v_cmd)
-	#print (v_cmd_two)
-	proc = subprocess.Popen(v_cmd,shell=True,stdout=subprocess.PIPE,universal_newlines=True,stderr=open('/dev/null', 'w'))
-	
-	p = re.compile (r"f (\(.*%\))")
-	for line in proc.stdout:
-		m = p.search( line )
-		#print line
-		if m:
-			print("Transcoding video: " + m.group(1) + "\r", end=" ")
-	print("Transcoding video:   done")
+	print("Transcoding video: ...",end="\r")
+	proc = subprocess.run(v_cmd,shell=False,universal_newlines=True,capture_output=True)
+
+	print("Transcoding video: done")
 	if options.tp:
-		proc = subprocess.Popen(v_cmd_two,shell=True,stdout=subprocess.PIPE,universal_newlines=True,stderr=open('/dev/null', 'w'))
-		for line in proc.stdout:
-			m = p.search( line )
-		
-			if m:
-				print("Transcoding video, pass 2: " + m.group(1) + "\r", end=" ")
-		print("Transcoding video, pass 2:   done")
+		print("Transcoding video, pass 2: ...", end="\r")
+		proc = subprocess.run(v_cmd_two,shell=False,universal_newlines=True,capture_output=True)
+		print("Transcoding video, pass 2: done")
 
 
 def conv_aud(file):
 	vol=''
 	if options.volnorm:
 		vol="volnorm,"
-	identify = subprocess.getoutput(MPLAYER + " -frames 0 -vo null -ao null -identify \"" + file + "\" | grep -E \"^ID|VIDEO|AUDIO\"")
+	identify = subprocess.run(["mplayer","-frames","0","-vo","null","-ao","null","nolirc","-identify",file], shell=False, capture_output=True, encoding="utf-8").stdout
 	p = re.compile("([0-9]*)( ch)")
 	m = p.search(identify)
 	if m:
 		silent = False
-		a_cmd = f'{MENCODER} "{file}" -v -of rawaudio -oac twolame -ovc copy -twolameopts br={options.abps}'
+		a_cmd = ["mencoder",file,"-v","-of","rawaudio","-oac","twolame","-ovc","copy","-twolameopts",f"br={options.abps}"]
 		c = int(m.group(1))
 		if options.channels is None and options.dpg != 0:
 			if c >= 2:
-				a_cmd = f'{a_cmd}:mode=stereo -o {MP2TMP.name} -af {vol}channels=2,resample={options.hz}:1:2'
+				a_cmd[-1] += ':mode=stereo'
+				a_cmd.extend(["-o", MP2TMP.name, "-af", f"{vol}channels=2,resample={options.hz}:1:2"])
 			else:
-				a_cmd = f'{a_cmd}:mode=mono -o {MP2TMP.name} -af {vol}channels=1,resample={options.hz}:1:2'
+				a_cmd[-1] += ':mode=mono'
+				a_cmd.extend(["-o", MP2TMP.name, "-af", f"{vol}channels=1,resample={options.hz}:1:2"])
 		elif options.channels >= 2 and options.dpg != 0:
-			a_cmd = f'{a_cmd}:mode=stereo -o {MP2TMP.name} -af {vol}channels=2,resample={options.hz}:1:2'
+			a_cmd[-1] += ':mode=stereo'
+			a_cmd.extend(["-o", MP2TMP.name, "-af", f"{vol}channels=2,resample={options.hz}:1:2"])
 		else:
-			a_cmd = f'{a_cmd}:mode=mono -o {MP2TMP.name} -af {vol}channels=1,resample={options.hz}:1:2'
+			a_cmd[-1] += ':mode=mono'
+			a_cmd.extend(["-o", MP2TMP.name, "-af", f"{vol}channels=1,resample={options.hz}:1:2"])
 	else:
 		# This condition will only be true if the video does not have an audio stream, or if mplayer errors out for some other reason.
 		# Having no audio stream will crash Moonshell as it's expecting something that doesn't exist
@@ -212,27 +203,19 @@ def conv_aud(file):
 		if vid_length:
 			seconds = float(vid_length.group(1))
 			# use sox with the mp3 libsox format to generate a silent mp2 file
-			a_cmd = f"sox -n -r 48000 -c 1 {MP2TMP.name} trim 0.0 {seconds}"
+			a_cmd = ["sox", "-n", "-r", "48000", "-c", "1", MP2TMP.name, "trim", "0.0", str(seconds)]
 			silent = True
 		else:
 			# this shouldn't occur if the user is passing an actual video file to the script
-			print("Error! See Mplayer output below:\n{}".format(identify))
+			print(f"Error! See Mplayer output below:\n{identify}")
 			exit(1)
 
 	if options.aid is not None:
-		a_cmd = a_cmd + " -aid " + str(options.aid)
+		a_cmd.extend(["-aid", str(options.aid)])
 
-	#print(a_cmd)
-
-	proc = subprocess.Popen(a_cmd,shell=True,stdout=subprocess.PIPE,universal_newlines=True,stderr=subprocess.STDOUT)
-	
-	if not silent:
-		p = re.compile (r"f (\(.*%\))")
-		for line in proc.stdout:
-			m = p.search( line )
-			if m:
-				print("Transcoding audio: " + m.group(1) + "\r", end=" ")
-	print("Transcoding audio:   done")
+	print("Transcoding audio: ...",end="\r")
+	proc = subprocess.run(a_cmd,shell=False,universal_newlines=True,capture_output=True)
+	print("Transcoding audio: done")
 
 def write_header(frames):
 	print("Creating header")
@@ -276,8 +259,8 @@ def write_header(frames):
 
 def mpeg_stat():
 	p = re.compile (r"frames: ([0-9]*)\.")
-	s_out = subprocess.getoutput( MPEG_STAT + " -offset " + STATTMP.name + " " + MPGTMP.name )
-	m = p.search( s_out )
+	s_out = subprocess.run(["mpeg_stat", "-offset", STATTMP.name, MPGTMP.name], shell=False,capture_output=True,encoding="utf-8")
+	m = p.search( s_out.stdout )
 	if m:
 		frames = m.group(1)
 		if options.dpg >= 2:
@@ -335,8 +318,8 @@ def conv_thumb(file, frames):
 	if not os.path.lexists(file):
 		print("Preview file will be generated from video file.")
 		shot_file = SHOTTMP.name +"/00000001.png"
-		s_cmd = f'{MPLAYER} {MPGTMP.name} -nosound -vo png:outdir={SHOTTMP.name} -frames 1 -ss {int((int(frames)/options.fps)/10)}'
-		output = subprocess.getoutput(s_cmd)
+		s_cmd = ["mplayer", MPGTMP.name, "-nosound", "-vo", f"png:outdir={SHOTTMP.name}", "-frames", "1", "-ss", f"{int((int(frames)/options.fps)/10)}"]
+		output = subprocess.run(s_cmd,shell=False,capture_output=True)
 		#check for "Exiting... (End of file)" ?
 		file = shot_file
 	
