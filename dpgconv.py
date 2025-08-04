@@ -127,10 +127,11 @@ def conv_vid(file):
 
 	v_cmd = ["mencoder"]
 	if options.tp:
+		two_pass_log = tempfile.NamedTemporaryFile()
 		if options.fps < 24:
 			print("mencoder won't work with double pass and fps < 24, forcing fps = 24")
 			options.fps = 24
-		v_cmd.extend([file, "-v", "-ofps", str(options.fps), "-sws", "9", "-vf", f"scale={options.width}:{options.height}:::3,expand=256:192,harddup", "-nosound", "-ovc", "lavc", "-lavcopts", f"vcodec=mpeg1video:vstrict=-2:mbd=2:trell:o=mpv_flags=+mv0:vmax_b_frames=2:cmp=6:subcmp=6:precmp=6:dia=4:predia=4:bidir_refine=4:mv0_threshold=0:last_pred=3:vbitrate={options.vbps}"])
+		v_cmd.extend([file, "-v", "-ofps", str(options.fps), "-sws", "9", "-vf", f"scale={options.width}:{options.height}:::3,expand=256:192,harddup", "-passlogfile", two_pass_log.name, "-nosound", "-ovc", "lavc", "-lavcopts", f"vcodec=mpeg1video:vstrict=-2:mbd=2:trell:o=mpv_flags=+mv0:vmax_b_frames=2:cmp=6:subcmp=6:precmp=6:dia=4:predia=4:bidir_refine=4:mv0_threshold=0:last_pred=3:vbitrate={options.vbps}"])
 	elif options.hq:
 		v_cmd.extend([file, "-v", "-ofps", str(options.fps), "-sws", "9", "-vf", f"scale={options.width}:{options.height}:::3,expand=256:192,harddup", "-nosound", "-ovc", "lavc", "-lavcopts", f"vcodec=mpeg1video:vstrict=-2:mbd=2:trell:o=mpv_flags=+mv0:keyint=10:cmp=6:subcmp=6:precmp=6:dia=3:predia=3:last_pred=3:vbitrate={options.vbps}", "-o", MPGTMP.name, "-of", "rawvideo"])
 	elif options.lq:
