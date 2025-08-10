@@ -1,15 +1,13 @@
 # dpgconv-py3
 
 A python script to transcode video files to DPG format suitable for Nintendo DS (tm).
-This fork aims to port [dpgconv](https://github.com/artm/dpgconv/) to Python 3.
+This is a fork of [dpgconv](https://github.com/artm/dpgconv/) which aims to port the script to Python 3.
 
 Copyright 2007-2011 Anton Romanov <theli (a@t) theli.is-a-geek.org>
 
 TODO:
-- Replace mpeg_stat with appropriate equivalent
-  - mpeg_stat is ancient and the only places I can find it still being packaged are within OpenMandriva and FreeBSD ports.
-  It is unlikely that people will have this on their devices.
 - Bring setup.py up to speed with Python 3.13
+- General code cleanup
 
 Requirements:
 - MPlayer/MEncoder

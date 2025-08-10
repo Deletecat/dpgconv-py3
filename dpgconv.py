@@ -85,6 +85,7 @@ command line options:
 
 import sys
 import os
+import mmap
 from PIL import Image
 import tempfile
 from optparse import OptionParser
@@ -187,7 +188,6 @@ def conv_aud(file):
 	p = re.compile("([0-9]*)( ch)")
 	m = p.search(identify)
 	if m:
-		silent = False
 		a_cmd = ["mencoder",file,"-v","-of","rawaudio","-oac","twolame","-ovc","copy","-twolameopts",f"br={options.abps}"]
 		c = int(m.group(1))
 		if options.channels is None and options.dpg != 0:
@@ -212,7 +212,6 @@ def conv_aud(file):
 			seconds = float(vid_length.group(1))
 			# use sox with the mp3 libsox format to generate a silent mp2 file
 			a_cmd = ["sox", "-n", "-r", "48000", "-c", "1", MP2TMP.name, "trim", "0.0", str(seconds)]
-			silent = True
 		else:
 			# this shouldn't occur if the user is passing an actual video file to the script
 			print(f"Error! See Mplayer output below:\n{identify}")
@@ -266,27 +265,56 @@ def write_header(frames):
 	f.close()
 
 def mpeg_stat():
-	p = re.compile (r"frames: ([0-9]*)\.")
-	s_out = subprocess.run(["mpeg_stat", "-offset", STATTMP.name, MPGTMP.name], shell=False,capture_output=True,encoding="utf-8")
-	m = p.search( s_out.stdout )
-	if m:
-		frames = m.group(1)
+	"""
+	from mpeg_stat source and mpeg header reference:
+	 - picture start code: 0x00000100
+	 - sequence start code: 0x000001b3
+	 - GOP start code: 0x000001b8
+	For every sequence, there's 10 pictures, due to the keyframe interval used during the transcoding stage being 10 frames.
+	If the keyframe interval is tweaked, the for loop will have to be tweaked as well.
+	These pictures continue to the end of the file, so if there's less than 10 pictures in a sequence (or no sequence after 10 pictures), we've reached EOF.
+	Despite the GOP start code being a thing, DPG2+ doesn't seem to use it?
+	"""
+	picture_start_code = b'\x00\x00\x01\x00'
+	sequence_start_code = b'\x00\x00\x01\xb3'
+	last_index = 0
+	frames = 0
+
+	with open(MPGTMP.name, "rb") as reader:
+		# DPG2+ uses GOP for faster seeking
 		if options.dpg >= 2:
-			gop=open(GOPTMP.name, 'wb')
-			stat=open(STATTMP.name, 'rb')
-			frame = 0
-			for line in stat:
-				sline = line.split()
-				if sline[0] == "picture" :
-					frame += 1
-				elif sline[0] == "sequence":
-					gop.write (struct.pack ( "<l" , frame ))
-					gop.write (struct.pack ( "<l" , int(sline[1])/8 )) # mpeg_stat shows bit offsets
+			gop = open(GOPTMP.name,"wb")
+
+		# use mmap so we don't have to read chunks of the video in
+		file_mmap = mmap.mmap(reader.fileno(),0,access=mmap.ACCESS_READ)
+
+		# loop until end of file reached
+		while True:
+			# check for the start of a sequence - returns -1 if EOF
+			last_index = file_mmap.find(sequence_start_code,last_index)
+			if(last_index == -1):
+				break	# EOF
+			elif options.dpg >= 2:
+				# write info required for GOP if DPG2 or above
+				gop.write(struct.pack("<l",frames))
+				gop.write(struct.pack("<l",last_index))
+			# increment last index so as to not find the same start code again
+			last_index += 1
+
+			# loop 10 times for each picture
+			for i in range(10):
+				# check if next picture exists - returns -1 if EOF
+				last_index = file_mmap.find(picture_start_code,last_index)
+				if(last_index == -1):
+					break	# EOF
+				# increment frame counter and last index
+				frames += 1
+				last_index += 1
+
+		# we need to close the GOP file manually
+		if options.dpg >= 2:
 			gop.close()
-			stat.close()
-	else:
-		print(s_out)
-		return 0
+
 	return frames
 
 def conv_file(file):
@@ -375,12 +403,11 @@ def conv_thumb(file, frames):
 			os.unlink ( shot_file )
 
 def init_names():
-	global MPGTMP,MP2TMP,HEADERTMP,GOPTMP,STATTMP,THUMBTMP,SHOTTMP
+	global MPGTMP,MP2TMP,HEADERTMP,GOPTMP,THUMBTMP,SHOTTMP
 	MP2TMP=tempfile.NamedTemporaryFile(suffix=".mp2")
 	MPGTMP=tempfile.NamedTemporaryFile()
 	HEADERTMP=tempfile.NamedTemporaryFile()
 	GOPTMP=tempfile.NamedTemporaryFile()
-	STATTMP=tempfile.NamedTemporaryFile()
 	THUMBTMP=tempfile.NamedTemporaryFile()
 	SHOTTMP=tempfile.TemporaryDirectory()
 
@@ -419,7 +446,7 @@ if options.dpg > 4 or options.dpg < 0:
 
 # check requirements
 # we don't need to check for pillow as that would trigger earlier in the script
-requirements = ["mplayer","mencoder","mpeg_stat","sox"]
+requirements = ["mplayer","mencoder","sox"]
 missing_requirement = False
 
 for i in range(len(requirements)):
