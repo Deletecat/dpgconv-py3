@@ -7,7 +7,6 @@ Copyright 2007-2011 Anton Romanov <theli (a@t) theli.is-a-geek.org>
 
 TODO:
 - Bring setup.py up to speed with Python 3.13
-- General code cleanup
 
 Requirements:
 - MPlayer/MEncoder

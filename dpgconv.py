@@ -89,7 +89,6 @@ import mmap
 from PIL import Image
 import tempfile
 from optparse import OptionParser
-import signal
 import re
 import shutil
 import stat
@@ -99,7 +98,7 @@ import subprocess
 #Print a help message if requested.
 if "-h" in sys.argv or "-help" in sys.argv or "--help" in sys.argv:
 	print(__doc__)
-	raise SystemExit
+	sys.exit(0)
 
 def conv_vid(file):
 	ident = subprocess.run(["mplayer", "-frames", "1", "-vo", "null", "-ao", "null", "-identify", "-nolirc", file], shell=False, capture_output=True, encoding="utf-8")
@@ -185,8 +184,7 @@ def conv_aud(file):
 	if options.volnorm:
 		vol="volnorm,"
 	identify = subprocess.run(["mplayer","-frames","0","-vo","null","-ao","null","nolirc","-identify",file], shell=False, capture_output=True, encoding="utf-8").stdout
-	p = re.compile("([0-9]*)( ch)")
-	m = p.search(identify)
+	m = re.compile("([0-9]*)( ch)").search(identify)
 	if m:
 		a_cmd = ["mencoder",file,"-v","-of","rawaudio","-oac","twolame","-ovc","copy","-twolameopts",f"br={options.abps}"]
 		c = int(m.group(1))
@@ -206,8 +204,7 @@ def conv_aud(file):
 	else:
 		# This condition will only be true if the video does not have an audio stream, or if mplayer errors out for some other reason.
 		# Having no audio stream will crash Moonshell as it's expecting something that doesn't exist
-		vid_length_regex = re.compile("ID_LENGTH=([0-9]*.[0-9]*)")	# ID_LENGTH corresponds to the video length in seconds
-		vid_length = vid_length_regex.search(identify)
+		vid_length = re.compile("ID_LENGTH=([0-9]*.[0-9]*)").search(identify) # ID_LENGTH corresponds to the video length in seconds
 		if vid_length:
 			seconds = float(vid_length.group(1))
 			# use sox with the mp3 libsox format to generate a silent mp2 file
@@ -215,7 +212,7 @@ def conv_aud(file):
 		else:
 			# this shouldn't occur if the user is passing an actual video file to the script
 			print(f"Error! See Mplayer output below:\n{identify}")
-			exit(1)
+			sys.exit(1)
 
 	if options.aid is not None:
 		a_cmd.extend(["-aid", str(options.aid)])
@@ -253,15 +250,16 @@ def write_header(frames):
 	f.write (struct.pack ( "<l" , headerValues[7]))
 	f.write (struct.pack ( "<l" , headerValues[8]))
 	f.write (struct.pack ( "<l" , headerValues[9]))
+
 	if options.dpg >= 2:
 		gopsize = os.stat(GOPTMP.name)[stat.ST_SIZE]
 		f.write (struct.pack ( "<l" , videoend ))
 		f.write (struct.pack ( "<l" , gopsize))
-	#sure !? and DPG3 ?
 	if options.dpg != 1:
 		f.write (struct.pack ( "<l" , pixel_format ))
 	if options.dpg == 4:
 		f.write (struct.pack ( "4s" , b"THM0"))
+
 	f.close()
 
 def mpeg_stat():
@@ -318,32 +316,30 @@ def mpeg_stat():
 	return frames
 
 def conv_file(file):
-	if not (os.path.lexists ( file )):
-		print("File " + file + " doesn't exist")
+	if not os.path.lexists(file):
+		print(f"File {file} doesn't exist")
 	print("Converting " + file)
 	conv_vid (file)
 	conv_aud(file)
 	frames = mpeg_stat()
 	if frames == 0:
-		print("Error using mpeg_stat ... see error above")
+		print("Error getting frame count. Please open an issue: https://github.com/Deletecat/dpgconv-py3")
 		return
 	if options.dpg == 4:
 		conv_thumb(options.thumb,frames)
 	write_header(frames)
-	dpgname = os.path.basename ( os.path.splitext ( file )[0] ) + ".dpg"
+	dpgname = os.path.basename(os.path.splitext(file)[0]) + ".dpg"
 	
 	print("Creating " + dpgname)
-	#subprocess.getoutput( "cat \"" + HEADERTMP + "\" \"" + MP2TMP + "\" \"" + MPGTMP + "\" > \"" + dpgname + "\"")
 	
 	if options.dpg == 4:
 		concat(dpgname,HEADERTMP,THUMBTMP,MP2TMP,MPGTMP,GOPTMP)
 	elif (options.dpg == 2) | (options.dpg == 3):
-		#subprocess.getoutput( "cat \"" + GOPTMP + "\" >> \"" + dpgname + "\"")
 		concat(dpgname,HEADERTMP,MP2TMP,MPGTMP,GOPTMP)
 	else:
 		concat(dpgname,HEADERTMP,MP2TMP,MPGTMP)
 	
-	print("Done converting \"" + file + "\" to \"" + dpgname + "\"")
+	print(f"Done converting {file} to {dpgname}")
 
 def conv_thumb(file, frames):
 	"""Converts PIL internal (24 or 32bit per pixel RGB) image
@@ -355,8 +351,7 @@ def conv_thumb(file, frames):
 		print("Preview file will be generated from video file.")
 		shot_file = SHOTTMP.name +"/00000001.png"
 		s_cmd = ["mplayer", MPGTMP.name, "-nosound", "-vo", f"png:outdir={SHOTTMP.name}", "-frames", "1", "-ss", f"{int((int(frames)/options.fps)/10)}"]
-		output = subprocess.run(s_cmd,shell=False,capture_output=True)
-		#check for "Exiting... (End of file)" ?
+		subprocess.run(s_cmd,shell=False)
 		file = shot_file
 	
 	im = Image.open(file)
@@ -389,18 +384,12 @@ def conv_thumb(file, frames):
 	thumb_file=open(THUMBTMP.name, 'wb')
 	thumb_file.write(thumb_data)
 	thumb_file.close()
-	#to create a file readable by an image viewer:
-	#tga16_file = open('thumb.tga', 'wb')
-	#tga_header='\x00\x00\x02\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x01\xC0\x00\x10\x00'
-	#tga16_file.write(tga_header)
-	#tga16_file.write(thumb_data)
-	#tga16_file.close()
 
 	#must be sure shot_file is always named 00000001.png
 	#for batch processing
-	if ( shot_file is not None ):
-		if (os.path.lexists ( shot_file )):
-			os.unlink ( shot_file )
+	if shot_file is not None:
+		if os.path.lexists(shot_file) :
+			os.unlink(shot_file)
 
 def init_names():
 	global MPGTMP,MP2TMP,HEADERTMP,GOPTMP,THUMBTMP,SHOTTMP
@@ -414,7 +403,7 @@ def init_names():
 def concat(out,*files):
 	outfile = open(out,'wb')
 	for name in files:
-		outfile.write( open(name.name,"rb").read() )
+		outfile.write(open(name.name,"rb").read())
 	outfile.close()
 
 parser = OptionParser()
