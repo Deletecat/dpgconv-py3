@@ -351,7 +351,7 @@ def conv_thumb(file, frames):
 		print("Preview file will be generated from video file.")
 		shot_file = SHOTTMP.name +"/00000001.png"
 		s_cmd = ["mplayer", MPGTMP.name, "-nosound", "-vo", f"png:outdir={SHOTTMP.name}", "-frames", "1", "-ss", f"{int((int(frames)/options.fps)/10)}"]
-		subprocess.run(s_cmd,shell=False)
+		subprocess.run(s_cmd,shell=False,capture_output=True)
 		file = shot_file
 	
 	im = Image.open(file)
