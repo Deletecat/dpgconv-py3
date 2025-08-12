@@ -10,11 +10,12 @@ Requirements:
 - SoX (with libsox-fmt-mp3)
 - Python Pillow library
 
-If you are on Debian, you can install all of the requirements with these commands:
+If you are on Debian, you can install all of the system requirements with these commands:
 
 ```
-apt update && apt install mplayer mencoder sox libsox-fmt-mp3 python3-pil
+apt update && apt install mplayer mencoder sox libsox-fmt-mp3 pipx
 ```
+Then as your user account, run this command in the project root: `pipx install .`
 
 The software is released under the terms of 
 [GPL v.2](http://www.gnu.org/licenses/gpl-2.0.html)
