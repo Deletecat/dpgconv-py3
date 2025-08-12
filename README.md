@@ -5,9 +5,6 @@ This is a fork of [dpgconv](https://github.com/artm/dpgconv/) which aims to port
 
 Copyright 2007-2011 Anton Romanov <theli (a@t) theli.is-a-geek.org>
 
-TODO:
-- Bring setup.py up to speed with Python 3.13
-
 Requirements:
 - MPlayer/MEncoder
 - SoX (with libsox-fmt-mp3)

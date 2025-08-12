@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dpgconv"
+version = "11.0"
+description = "Transcode video files to DPG format suitable for Nintendo DS"
+readme = "README.md"
+license = "GPL-2.0-only"
+license-files = ["LICENSE"]
+authors = [
+    {name = "Anton Romanov", email = "theli@ukr.net"},
+]
+maintainers = [
+    {name = "Deletecat", email = "kit@deletecat.com"},
+]
+dependencies = [
+    "pillow",
+]
+classifiers = [
+    "Topic :: Multimedia :: Video :: Conversion",
+    "Programming Language :: Python :: 3",
+]
+
+[project.urls]
+source = "https://github.com/Deletecat/dpgconv-py3"
+issues = "https://github.com/Deletecat/dpgconv-py3/issues"
+
+[project.scripts]
+dpgconv = "dpgconv.dpgconv:main"

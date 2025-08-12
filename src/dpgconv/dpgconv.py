@@ -94,11 +94,6 @@ import shutil
 import struct
 import subprocess
 
-#Print a help message if requested.
-if "-h" in sys.argv or "-help" in sys.argv or "--help" in sys.argv:
-	print(__doc__)
-	sys.exit(0)
-
 def conv_vid(file):
 	ident = subprocess.run(["mplayer", "-frames", "1", "-vo", "null", "-ao", "null", "-identify", "-nolirc", file], shell=False, capture_output=True, encoding="utf-8")
 	frames = float(re.compile("ID_VIDEO_FPS=(.*)").search(ident.stdout).group(1))
@@ -405,54 +400,64 @@ def concat(out,*files):
 		outfile.write(open(name.name,"rb").read())
 	outfile.close()
 
-parser = OptionParser()
-parser.add_option("-f","--fps", type="int", dest="fps" , default=15)
-parser.add_option("-q","--hq", action="store_true", dest="hq", default=False)
-parser.add_option("-l","--lq", action="store_true", dest="lq", default=False)
-parser.add_option("-v","--vbps", type="int", dest="vbps", default=256)
-parser.add_option("-a","--abps", type="int", dest="abps", default=128)
-parser.add_option("--volnorm", action="store_true", dest="volnorm", default=False)
-parser.add_option("--keep-aspect", action="store_true", dest="aspect", default=False)
-parser.add_option("--height", type="int", dest="height", default=192)
-parser.add_option("--width", type="int", dest="width", default=256)
-parser.add_option("-z","--hz", type="int", dest="hz", default=32000)
-parser.add_option("-c","--channels", type="int", dest="channels")
-parser.add_option("--subcp", dest="subcp")
-parser.add_option("-s","--sub", dest="sub")
-parser.add_option("--font", dest="font")
-parser.add_option("-t", "--thumb", dest="thumb", default="")
-parser.add_option("--nosub", action="store_true", dest="nosub", default=False)
-parser.add_option("--dpg", type="int" , dest="dpg", default=4)
-parser.add_option("--sid", type="int" , dest="sid")
-parser.add_option("--aid", type="int" , dest="aid")
-parser.add_option("-2","--tp",action="store_true", dest="tp", default=False)
-(options, args) = parser.parse_args()
+def main():
+	#Print a help message if requested.
+	if "-h" in sys.argv or "-help" in sys.argv or "--help" in sys.argv:
+		print(__doc__)
+		sys.exit(0)
 
-if options.dpg > 4 or options.dpg < 0:
-	print("Error, invalid DPG version selection! Defaulting to DPG4...")
-	options.dpg = 4
+	global options
+	parser = OptionParser()
+	parser.add_option("-f","--fps", type="int", dest="fps" , default=15)
+	parser.add_option("-q","--hq", action="store_true", dest="hq", default=False)
+	parser.add_option("-l","--lq", action="store_true", dest="lq", default=False)
+	parser.add_option("-v","--vbps", type="int", dest="vbps", default=256)
+	parser.add_option("-a","--abps", type="int", dest="abps", default=128)
+	parser.add_option("--volnorm", action="store_true", dest="volnorm", default=False)
+	parser.add_option("--keep-aspect", action="store_true", dest="aspect", default=False)
+	parser.add_option("--height", type="int", dest="height", default=192)
+	parser.add_option("--width", type="int", dest="width", default=256)
+	parser.add_option("-z","--hz", type="int", dest="hz", default=32000)
+	parser.add_option("-c","--channels", type="int", dest="channels")
+	parser.add_option("--subcp", dest="subcp")
+	parser.add_option("-s","--sub", dest="sub")
+	parser.add_option("--font", dest="font")
+	parser.add_option("-t", "--thumb", dest="thumb", default="")
+	parser.add_option("--nosub", action="store_true", dest="nosub", default=False)
+	parser.add_option("--dpg", type="int" , dest="dpg", default=4)
+	parser.add_option("--sid", type="int" , dest="sid")
+	parser.add_option("--aid", type="int" , dest="aid")
+	parser.add_option("-2","--tp",action="store_true", dest="tp", default=False)
+	(options, args) = parser.parse_args()
 
-# check requirements
-# we don't need to check for pillow as that would trigger earlier in the script
-requirements = ["mplayer","mencoder","sox"]
-missing_requirement = False
+	if options.dpg > 4 or options.dpg < 0:
+		print("Error, invalid DPG version selection! Defaulting to DPG4...")
+		options.dpg = 4
 
-for i in range(len(requirements)):
-	if shutil.which(requirements[i]) is None:
-		print(f"Error, {requirements[i]} is missing!")
+	# check requirements
+	# we don't need to check for pillow as that would trigger earlier in the script
+	requirements = ["mplayer","mencoder","sox"]
+	missing_requirement = False
+
+	for i in range(len(requirements)):
+		if shutil.which(requirements[i]) is None:
+			print(f"Error, {requirements[i]} is missing!")
+			missing_requirement = True
+
+	# check if sox has mp3/mp2 format extension
+	sox_test = subprocess.run(['sox', '-h'], shell=False, capture_output=True, encoding="utf-8")
+	mp2_test = re.compile("mp2").search(sox_test.stdout)
+	if mp2_test is None:
+		print("Error, libsox-fmt-mp3 is missing!")
 		missing_requirement = True
 
-# check if sox has mp3/mp2 format extension
-sox_test = subprocess.run(['sox', '-h'], shell=False, capture_output=True, encoding="utf-8")
-mp2_test = re.compile("mp2").search(sox_test.stdout)
-if mp2_test is None:
-	print("Error, libsox-fmt-mp3 is missing!")
-	missing_requirement = True
+	# exit the script if a requirement isn't met
+	if missing_requirement:
+		exit(1)
 
-# exit the script if a requirement isn't met
-if missing_requirement:
-	exit(1)
+	init_names()
+	for file in args:
+		conv_file(file)
 
-init_names()
-for file in args:
-	conv_file(file)
+if __name__ == "__main__":
+	main()
