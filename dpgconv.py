@@ -91,7 +91,6 @@ import tempfile
 from optparse import OptionParser
 import re
 import shutil
-import stat
 import struct
 import subprocess
 
@@ -231,8 +230,8 @@ def write_header(frames):
 		audiostart += 12
 	elif options.dpg == 4:
 		audiostart += 98320
-	audiosize = os.stat(MP2TMP.name)[stat.ST_SIZE]
-	videosize = os.stat(MPGTMP.name)[stat.ST_SIZE]
+	audiosize = os.stat(MP2TMP.name).st_size
+	videosize = os.stat(MPGTMP.name).st_size
 	videostart = audiostart + audiosize
 	videoend = videostart + videosize
 	pixel_format = 3
@@ -252,7 +251,7 @@ def write_header(frames):
 	f.write (struct.pack ( "<l" , headerValues[9]))
 
 	if options.dpg >= 2:
-		gopsize = os.stat(GOPTMP.name)[stat.ST_SIZE]
+		gopsize = os.stat(GOPTMP.name).st_size
 		f.write (struct.pack ( "<l" , videoend ))
 		f.write (struct.pack ( "<l" , gopsize))
 	if options.dpg != 1:
