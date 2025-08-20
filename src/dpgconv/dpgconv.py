@@ -57,6 +57,13 @@ command line options:
 		NOTE: thumbnail will be generated autimatically
 		from input video if you won't set this parameter
 
+	Misc
+	-o,--outdir
+		specify output directory
+
+		e.g. to output to your user's Videos folder, do
+		--outdir ~/Videos
+
 	Hardcoding subtitles
 	--nosub
 		do no try autoloading of subtitles
@@ -70,6 +77,7 @@ command line options:
 		specify subtitles encoding
 	--font xxx
 		specify font for subtitles
+
   EXAMPLE:
     --font ~/arial-14/font.desc
     --font ~/arialuni.ttf
@@ -322,7 +330,7 @@ def conv_file(file):
 	if options.dpg == 4:
 		conv_thumb(options.thumb,frames)
 	write_header(frames)
-	dpgname = os.path.basename(os.path.splitext(file)[0]) + ".dpg"
+	dpgname = options.outdir + "/" + os.path.basename(os.path.splitext(file)[0]) + ".dpg"
 	
 	print("Creating " + dpgname)
 	
@@ -428,6 +436,7 @@ def main():
 	parser.add_option("--sid", type="int" , dest="sid")
 	parser.add_option("--aid", type="int" , dest="aid")
 	parser.add_option("-2","--tp",action="store_true", dest="tp", default=False)
+	parser.add_option("-o","--outdir",dest="outdir",default=".")
 	(options, args) = parser.parse_args()
 
 	if options.dpg > 4 or options.dpg < 0:
