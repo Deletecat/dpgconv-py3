@@ -7,7 +7,7 @@ name = "dpgconv"
 version = "11.0"
 description = "Transcode video files to DPG format suitable for Nintendo DS"
 readme = "README.md"
-license = "GPL-2.0-only"
+license = "GPL-2.0-or-later"
 license-files = ["LICENSE"]
 authors = [
     {name = "Anton Romanov", email = "theli@ukr.net"},
